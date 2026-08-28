@@ -53,6 +53,7 @@ class _RegisterScreen extends State<RegisterScreen> {
                 labelStyle: TextStyle(color: AppColors.meidumBlue),
                 hintText: "Ingrese un correo electronico",
                 icon: Icon(Icons.mail),
+                iconColor: AppColors.meidumBlue
               ),
             ),
             TextFormField(
@@ -67,6 +68,8 @@ class _RegisterScreen extends State<RegisterScreen> {
                 labelStyle: TextStyle(color: AppColors.meidumBlue),
                 hintText: "Contraseña minimo 8 caracteres",
                 icon: Icon(Icons.key),
+                iconColor: AppColors.meidumBlue,
+                suffixIconColor: AppColors.meidumBlue,
                 suffixIcon: PasswordEye(
                   openEye: eyeOpen,
                   changeStateEye: () {
@@ -89,6 +92,8 @@ class _RegisterScreen extends State<RegisterScreen> {
                 labelStyle: TextStyle(color: AppColors.meidumBlue),
                 hintText: "Repita la contraseña por favor",
                 icon: Icon(Icons.key),
+                iconColor: AppColors.meidumBlue,
+                suffixIconColor: AppColors.meidumBlue,
                 suffixIcon: PasswordEye(
                   openEye: eyeOpen2,
                   changeStateEye: () {

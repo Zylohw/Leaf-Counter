@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:leaf_mobile/core/app_colors.dart';
+import 'package:leaf_mobile/screens/forget_password_screen.dart';
 import 'package:leaf_mobile/screens/register_screen.dart';
 import 'package:leaf_mobile/widgets/pasword_eye.dart';
 
@@ -97,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Text("Iniciar Seción"),
           ),
           TextButton(
-            onPressed: () {},
+            onPressed: () {Navigator.push(context, MaterialPageRoute(builder: (context)=> ForgetPasswordScreen()));},
             style: TextButton.styleFrom(foregroundColor: AppColors.meidumBlue),
             child: Text("¿Olvidaste tu contraseña?"),
           ),
@@ -109,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.meidumBlue),
-            child: Text("Registrarse"),
+            child: Text("Registrarse (solo para admin)"),
           ),
         ],
       ),
