@@ -1,111 +1,92 @@
 BEGIN;
 
-CREATE TABLE roles 
+CREATE TYPE estado_general AS ENUM ('activo', 'inactivo');
+CREATE TYPE estado_reporte AS ENUM ('pendiente', 'generado', 'enviado', 'anulado');
+CREATE TYPE estado_notificacion AS ENUM ('pendiente', 'enviada', 'leida', 'fallida');
+
+CREATE TABLE rol 
 (
     id      SERIAL PRIMARY KEY,
-    rol     VARCHAR(50) NOT NULL UNIQUE
-);
-
-CREATE TABLE users 
-(
-    id          SERIAL PRIMARY KEY,
-    nombre      VARCHAR(150) NOT NULL,
-    correo      VARCHAR(150) NOT NULL UNIQUE,
-    rol_id      INTEGER NOT NULL REFERENCES roles(id) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
-CREATE INDEX idx_users_rol_id ON users(rol_id);
-
-CREATE TABLE contrasenas 
-(
-    id          SERIAL PRIMARY KEY,
-    contrasena  VARCHAR(255) NOT NULL,  -- guardar siempre como hash, nunca en texto plano
-    user_id     INTEGER NOT NULL UNIQUE REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
+    nombre  VARCHAR(50) NOT NULL UNIQUE,
+    estado  estado_general NOT NULL DEFAULT 'activo'
 );
 
 CREATE TABLE usuarios 
 (
-    id  INTEGER PRIMARY KEY REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
-);
-
-CREATE TABLE admins 
-(
-    id  INTEGER PRIMARY KEY REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
-);
-
-CREATE TABLE mantenimientos 
-(
-    id      INTEGER PRIMARY KEY REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    sector  VARCHAR(100)
-);
-
-CREATE TABLE casas 
-(
     id          SERIAL PRIMARY KEY,
-    numero      VARCHAR(20) NOT NULL,
-    sector      VARCHAR(100),
-    usuario_id  INTEGER UNIQUE REFERENCES usuarios(id) ON UPDATE CASCADE ON DELETE SET NULL
+    nombre      VARCHAR(150) NOT NULL,
+    correo      VARCHAR(150) NOT NULL UNIQUE,
+    contrasena  VARCHAR(255) NOT NULL,
+    estado      estado_general NOT NULL DEFAULT 'activo',
+
+    rol_id      INTEGER NOT NULL REFERENCES rol(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE pdfs 
+CREATE TABLE casa 
 (
-    id          SERIAL PRIMARY KEY,
-    fecha       TIMESTAMP NOT NULL DEFAULT now(),
-    contenido   TEXT  -- ruta/URL del archivo
+    id      SERIAL PRIMARY KEY,
+    sector  VARCHAR(100) NOT NULL,
+    numero  VARCHAR(20) NOT NULL,
+    estado  estado_general NOT NULL DEFAULT 'activo',
+    UNIQUE (sector, numero)
 );
 
-CREATE TABLE reportes 
+CREATE TABLE tiene 
 (
-    id          SERIAL PRIMARY KEY,
-    titulo      VARCHAR(150) NOT NULL,
-    descripcion TEXT,
-    fecha       TIMESTAMP NOT NULL DEFAULT now(),
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    casa_id     INTEGER NOT NULL REFERENCES casa(id) ON UPDATE CASCADE ON DELETE CASCADE,
 
-    --Realiza
-    admin_id    INTEGER NOT NULL REFERENCES admins(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    pendiente   BOOLEAN NOT NULL DEFAULT TRUE,          
-
-    --Reciben
-    casa_id     INTEGER NOT NULL REFERENCES casas(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    recibido    BOOLEAN NOT NULL DEFAULT FALSE,         
-
-    --Incluye
-    pdf_id      INTEGER REFERENCES pdfs(id) ON UPDATE CASCADE ON DELETE SET NULL  
+    habita      BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (usuario_id, casa_id)
 );
 
-CREATE INDEX idx_reportes_admin_id ON reportes(admin_id);
-CREATE INDEX idx_reportes_casa_id  ON reportes(casa_id);
-CREATE INDEX idx_reportes_pdf_id   ON reportes(pdf_id);
+CREATE TABLE reporte 
+(
+    id           SERIAL PRIMARY KEY,
+    descripcion  TEXT,
+    pdf          VARCHAR(255),
+    fecha        TIMESTAMP NOT NULL DEFAULT NOW(),
+    titulo       VARCHAR(150) NOT NULL,
+    estado       estado_reporte NOT NULL DEFAULT 'pendiente',
+
+    usuario_id   INTEGER NOT NULL REFERENCES usuarios(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE reciben 
+(
+    casa_id     INTEGER NOT NULL REFERENCES casa(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    reporte_id  INTEGER NOT NULL REFERENCES reporte(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    recibido    BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (casa_id, reporte_id)
+);
 
 CREATE TABLE datos 
 (
-    id                  SERIAL PRIMARY KEY,
-    fecha               TIMESTAMP NOT NULL DEFAULT now(),
-    contenido           TEXT,
-    foto                TEXT,  -- ruta/URL de la foto
+    id              SERIAL PRIMARY KEY,
+    medida_tomada   NUMERIC(10,2) NOT NULL,
+    estado          estado_general NOT NULL DEFAULT 'activo',
+    fecha           TIMESTAMP NOT NULL DEFAULT NOW(),
+    contenido       TEXT,
+    foto            VARCHAR(255),
 
-    --Contiene
-    reporte_id          INTEGER REFERENCES reportes(id) ON UPDATE CASCADE ON DELETE SET NULL,  
-    
-    --Toma
-    casa_id             INTEGER NOT NULL REFERENCES casas(id) ON UPDATE CASCADE ON DELETE CASCADE,          
-    mantenimiento_id    INTEGER NOT NULL REFERENCES mantenimientos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    medicion_tomada     BOOLEAN NOT NULL DEFAULT FALSE
+    reporte_id      INTEGER NOT NULL REFERENCES reporte(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
-
-CREATE INDEX idx_datos_reporte_id       ON datos(reporte_id);
-CREATE INDEX idx_datos_casa_id          ON datos(casa_id);
-CREATE INDEX idx_datos_mantenimiento_id ON datos(mantenimiento_id);
 
 CREATE TABLE notificaciones 
 (
-    id          SERIAL PRIMARY KEY,
-    fecha       TIMESTAMP NOT NULL DEFAULT now(),
-    descripcion TEXT,
-    reporte_id  INTEGER NOT NULL REFERENCES reportes(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    leida       BOOLEAN NOT NULL DEFAULT FALSE
+    id           SERIAL PRIMARY KEY,
+    descripcion  TEXT NOT NULL,
+    fecha        TIMESTAMP NOT NULL DEFAULT NOW(),
+    estado       estado_notificacion NOT NULL DEFAULT 'pendiente',
+
+    reporte_id   INTEGER NOT NULL REFERENCES reporte(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+CREATE INDEX idx_usuarios_rol_id ON usuarios(rol_id);
+CREATE INDEX idx_reporte_usuario_id ON reporte(usuario_id);
+CREATE INDEX idx_datos_reporte_id ON datos(reporte_id);
 CREATE INDEX idx_notificaciones_reporte_id ON notificaciones(reporte_id);
+CREATE INDEX idx_tiene_casa_id ON tiene(casa_id);
+CREATE INDEX idx_reciben_reporte_id ON reciben(reporte_id);
 
 COMMIT;
