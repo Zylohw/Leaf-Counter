@@ -3,7 +3,6 @@ import 'package:leaf_mobile/core/app_colors.dart';
 import 'package:leaf_mobile/screens/forget_password_screen.dart';
 import 'package:leaf_mobile/screens/normal_users/home_screen_users.dart';
 import 'package:leaf_mobile/screens/register_screen.dart';
-import 'package:leaf_mobile/widgets/navigator_bar.dart';
 import 'package:leaf_mobile/widgets/pasword_eye.dart';
 
 class LoginScreen extends StatefulWidget {
