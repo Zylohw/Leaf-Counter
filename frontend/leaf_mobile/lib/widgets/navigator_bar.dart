@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:leaf_mobile/core/app_colors.dart';
 
 class NavigatorBar extends StatefulWidget{
   final Icon icon1 ; 
@@ -21,6 +22,7 @@ class _NavigatorBarState extends State<NavigatorBar>{
   @override
   Widget build  (BuildContext context){
     return NavigationBar(
+      indicatorColor: AppColors.lightBlue,
       destinations: <Widget>[
         NavigationDestination(icon: widget.icon1, label: widget.label1),
         NavigationDestination(icon: widget.icon2, label: widget.label2),
@@ -28,10 +30,6 @@ class _NavigatorBarState extends State<NavigatorBar>{
         NavigationDestination(icon: widget.icon4, label: widget.label4),
         NavigationDestination(icon: widget.icon5, label: widget.label5),
       ]
-      
-      
-      
-      
       );
   }
 }
