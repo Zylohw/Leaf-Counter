@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:leaf_mobile/core/app_colors.dart';
 import 'package:leaf_mobile/screens/normal_users/users_menu_screen.dart';
+import 'package:leaf_mobile/screens/normal_users/users_notifications_screen.dart';
+import 'package:leaf_mobile/screens/normal_users/users_profile_screen.dart';
 import 'package:leaf_mobile/screens/normal_users/users_reports_screen.dart';
+import 'package:leaf_mobile/screens/normal_users/users_tracking_screen.dart';
 /**
  * este widget funciona como router para las demas vistas del usuario de tipo comun entonces todas las vistas relacionadas se conectan en este archivo 
  * modicado por : Zylo ;D
@@ -30,6 +33,9 @@ class _UserScreenRouterState extends State<UserScreenRouter> {
            */
           UsersMenuScreen(userName: "Pablo"),
           UsersReportsScreen(),
+          UsersTrackingScreen(),
+          UsersNotificationsScreen(),
+          UsersProfileScreen()
 
         ],
       ),
