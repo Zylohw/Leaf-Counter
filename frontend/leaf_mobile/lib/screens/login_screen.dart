@@ -93,7 +93,6 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           FilledButton(
             onPressed: () {
-                // para probar las vistas se cambiara de vista destinataria, lo que se quiere decir es que se cambiara la vista a la que redirigie el login button
                 Navigator.push(context,MaterialPageRoute(builder: (context) => UserScreenRouter()));
 
             },
@@ -115,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.meidumBlue),
-            child: Text("Registrarse (solo para admin)"),
+            child: Text("Registrarse"),
           ),
         ],
       ),
