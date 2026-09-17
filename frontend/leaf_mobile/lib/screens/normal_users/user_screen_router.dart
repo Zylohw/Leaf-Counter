@@ -23,8 +23,8 @@ class _UserScreenRouterState extends State<UserScreenRouter> {
       body: IndexedStack(
         index: indexNavBottom,
         children: [
-          // contiene las screen:
           /**
+           * Contiene las siguientes vistas:
            * menu
            * reportes
            * tracking(proximanete con el microcontrolador)
