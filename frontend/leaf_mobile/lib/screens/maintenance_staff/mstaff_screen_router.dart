@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:leaf_mobile/core/app_colors.dart';
+import 'package:leaf_mobile/screens/maintenance_staff/mstaff_home_screen.dart';
 
 class MstaffScreenRouter extends StatefulWidget {
   const MstaffScreenRouter({super.key});
@@ -23,6 +24,7 @@ class _MstaffScreenRouterState extends State<MstaffScreenRouter> {
          * Perfil
          */
 
+        MstaffHomeScreen()
       ],
       ),
       bottomNavigationBar: NavigationBar(
