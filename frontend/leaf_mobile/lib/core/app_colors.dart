@@ -10,7 +10,7 @@ class AppColors  {
   // colores de estado 
   static const stateGreen = Color(0xFF43A047);
   static const stateYellowOrange = Color(0xFFF5A623);
-  static const stateRed = Color(0xFFE74C3C);
+  static const stateRed = Color.fromARGB(255, 249, 27, 2);
 
   // colores neutrales (utilizados para el fondo o colores de los textos)
   static const background = Color(0xFFF7F9FA);
