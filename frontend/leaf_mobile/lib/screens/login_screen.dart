@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:leaf_mobile/core/app_colors.dart';
+import 'package:leaf_mobile/screens/admin_users/admin_screen_router.dart';
+import 'package:leaf_mobile/screens/admin_users/info_screen_admin.dart';
 import 'package:leaf_mobile/screens/forget_password_screen.dart';
 import 'package:leaf_mobile/screens/maintenance_staff/mstaff_screen_router.dart';
 import 'package:leaf_mobile/screens/normal_users/user_screen_router.dart';
@@ -94,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           FilledButton(
             onPressed: () {
-                Navigator.push(context,MaterialPageRoute(builder: (context) => MstaffScreenRouter()));
+                Navigator.push(context,MaterialPageRoute(builder: (context) => AdminScreenRouter()));
 
             },
             style: FilledButton.styleFrom(

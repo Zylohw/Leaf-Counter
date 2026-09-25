@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:leaf_mobile/core/app_colors.dart';
 import 'package:leaf_mobile/screens/maintenance_staff/mstaff_home_screen.dart';
+import 'package:leaf_mobile/screens/maintenance_staff/mstaff_input_screen.dart';
+import 'package:leaf_mobile/screens/maintenance_staff/mstaff_list_checked_screen.dart';
+import 'package:leaf_mobile/screens/maintenance_staff/mstaff_notifications_screen.dart';
 
 class MstaffScreenRouter extends StatefulWidget {
   const MstaffScreenRouter({super.key});
@@ -24,12 +27,15 @@ class _MstaffScreenRouterState extends State<MstaffScreenRouter> {
          * Perfil
          */
 
-        MstaffHomeScreen()
+        MstaffHomeScreen(),
+        MstaffListCheckedScreen(),
+        MstaffInputScreen(),
+        MstaffNotificationsScreen()
       ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: indexNav,
-        indicatorColor: AppColors.lightGreen,
+        indicatorColor: AppColors.lightBlue,
         backgroundColor: AppColors.alternativeBackground,
         onDestinationSelected: (int index){
           setState(() {

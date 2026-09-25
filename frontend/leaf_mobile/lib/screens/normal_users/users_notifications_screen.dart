@@ -33,11 +33,11 @@ Padding notifationComponent() {
           ),
           IconButton(
             onPressed: () {},
-            icon: Icon(Icons.delete, color: AppColors.stateRed, size: 50),
+            icon: Icon(Icons.check, color: AppColors.meidumBlue, size: 50),
           ),
           IconButton(
             onPressed: () {},
-            icon: Icon(Icons.check, color: AppColors.meidumBlue, size: 50),
+            icon: Icon(Icons.delete, color: AppColors.stateRed, size: 50),
           ),
         ],
       ),
