@@ -38,6 +38,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   syncfusion_flutter_gauges: ^34.2.7
   month_year_picker: ^0.5.0+1
+  http: ^1.6.0
+  flutter_secure_storage: ^11.2.0
+  image_picker: ^1.2.4
 
 dev_dependencies:
   flutter_test:
