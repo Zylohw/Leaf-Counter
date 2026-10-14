@@ -4,11 +4,6 @@ const pool = require('../config/db');
 const SALT_ROUNDS = 10;
 const ROL_POR_DEFECTO = 'Comun';
 
-/**
- * POST /api/usuarios/registro
- * Body: { nombre, correo, contrasena }
- * Inserta un usuario nuevo con el rol "Comun" (buscado dinamicamente en la tabla rol).
- */
 async function registrarUsuario(req, res)
 {
     const { nombre, correo, contrasena } = req.body;
@@ -46,18 +41,16 @@ async function registrarUsuario(req, res)
         const rolId = rolResultado.rows[0].id;
         const hash = await bcrypt.hash(contrasena, SALT_ROUNDS);
 
-        const nuevoUsuario = await cliente.query(
-            `INSERT INTO usuarios (nombre, correo, contrasena, rol_id)
-             VALUES ($1, $2, $3, $4)
-             RETURNING id, nombre, correo, estado`,
-            [nombre, correo, hash, rolId]
-        );
+        const nuevoUsuario = await cliente.query(`INSERT INTO usuarios (nombre, correo, contrasena, rol_id)
+                                                  VALUES ($1, $2, $3, $4)
+                                                  RETURNING id, nombre, correo, estado`,
+                                                  [nombre, correo, hash, rolId] );
 
         return res.status(201).json(
-        {
-            mensaje: 'Usuario registrado correctamente',
-            usuario: nuevoUsuario.rows[0],
-        });
+            {
+                mensaje: 'Usuario registrado correctamente',
+                usuario: nuevoUsuario.rows[0],
+            });
     }
     catch (error)
     {

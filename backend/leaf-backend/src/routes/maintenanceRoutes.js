@@ -4,39 +4,33 @@ const { emitirReporte } = require('../controllers/reportController');
 
 const pool = require('../config/db');
 
-const {
-    obtenerCasasMantenimiento,
-    registrarLectura,
-    obtenerReportesMantenimiento
-} = require('../controllers/maintenanceController');
+const { obtenerCasasMantenimiento,
+        registrarLectura,
+        obtenerReportesMantenimiento } = require('../controllers/maintenanceController');
 
 const { requireAuth } = require('../middleware/auth');
 
-const {
-    obtenerNotificacionesMantenimiento
-} = require('../controllers/notificationController');
+const { obtenerNotificacionesMantenimiento } = require('../controllers/notificationController');
 
 async function requireMaintenance(req, res, next)
 {
     try
     {
-        const resultado = await pool.query(
-            `SELECT u.id
-             FROM usuarios u
-             INNER JOIN rol r
-                ON r.id = u.rol_id
-             WHERE u.id = $1
-             AND u.rol_id = 2
-             AND u.estado = TRUE
-             AND r.estado = TRUE`,
-            [req.usuario.id]
-        );
+        const resultado = await pool.query( `SELECT u.id
+                                             FROM usuarios u, rol r
+                                             WHERE r.id = u.rol_id 
+                                             AND u.id = $1
+                                             AND u.rol_id = 2
+                                             AND u.estado = TRUE
+                                             AND r.estado = TRUE`,
+                                             [req.usuario.id] );
 
         if (resultado.rows.length === 0)
         {
-            return res.status(403).json({
-                mensaje: 'No tienes permisos para esta acción'
-            });
+            return res.status(403).json(
+                {
+                    mensaje: 'No tienes permisos para esta acción'
+                });
         }
 
         next();
@@ -45,9 +39,10 @@ async function requireMaintenance(req, res, next)
     {
         console.error('Error en requireMaintenance:', error);
 
-        return res.status(500).json({
-            mensaje: 'Error interno del servidor'
-        });
+        return res.status(500).json(
+            {
+                mensaje: 'Error interno del servidor'
+            });
     }
 }
 
@@ -62,9 +57,6 @@ router.get('/reportes', obtenerReportesMantenimiento);
 
 router.post('/reportes/:id/emitir', emitirReporte);
 
-router.get(
-    '/notificaciones',
-    obtenerNotificacionesMantenimiento
-);
+router.get('/notificaciones', obtenerNotificacionesMantenimiento);
 
 module.exports = router;

@@ -6,68 +6,53 @@ const { obtenerLecturas } = require('../controllers/readingController');
 
 const pool = require('../config/db');
 
-const {
-    obtenerPerfil,
-    actualizarPerfil,
-    registrarMantenimiento
-} = require('../controllers/adminController');
+const { obtenerPerfil,
+        actualizarPerfil,
+        registrarMantenimiento } = require('../controllers/adminController');
 
-const {
-    obtenerCasas,
-    registrarCasa,
-    actualizarCasa,
-    cambiarEstadoCasa
-} = require('../controllers/houseController');
+const { obtenerCasas,
+        registrarCasa,
+        actualizarCasa,
+        cambiarEstadoCasa } = require('../controllers/houseController');
 
-const {
-    obtenerUsuarios,
-    actualizarUsuario,
-    cambiarEstadoUsuario,
-    obtenerUsuariosCasa
-} = require('../controllers/userManagementController');
+const { obtenerUsuarios,
+        actualizarUsuario,
+        cambiarEstadoUsuario,
+        obtenerUsuariosCasa } = require('../controllers/userManagementController');
 
-const {
-    asociarUsuarioCasa,
-    actualizarHabitante
-} = require('../controllers/houseAssignmentController');
+const { asociarUsuarioCasa,
+        actualizarHabitante } = require('../controllers/houseAssignmentController');
 
 const { requireAuth } = require('../middleware/auth');
 
 
-const {
-    obtenerNotificacionesAdmin,
-    crearNotificacion,
-    cambiarEstadoNotificacion
-} = require('../controllers/notificationController');
+const { obtenerNotificacionesAdmin,
+        crearNotificacion,
+        cambiarEstadoNotificacion } = require('../controllers/notificationController');
 
-const {
-    obtenerReportesAdmin
-} = require('../controllers/adminReportController');
+const { obtenerReportesAdmin } = require('../controllers/adminReportController');
 
-const {
-    programarLectura
-} = require('../controllers/scheduleController');
+const { programarLectura } = require('../controllers/scheduleController');
 
 async function requireAdmin(req, res, next)
 {
     try
     {
-        const resultado = await pool.query(
-            `SELECT u.id
-             FROM usuarios u
-             JOIN rol r ON r.id = u.rol_id
-             WHERE u.id = $1
-             AND u.rol_id = 3
-             AND u.estado = TRUE
-             AND r.estado = TRUE`,
-            [req.usuario.id]
-        );
+        const resultado = await pool.query( `SELECT u.id
+                                             FROM usuarios u, rol r
+                                             WHERE r.id = u.rol_id 
+                                             AND u.id = $1
+                                             AND u.rol_id = 3
+                                             AND u.estado = TRUE
+                                             AND r.estado = TRUE`,
+                                             [req.usuario.id] );
 
         if (resultado.rows.length === 0)
         {
-            return res.status(403).json({
-                mensaje: 'No tienes permisos para esta acción'
-            });
+            return res.status(403).json(
+                {
+                    mensaje: 'No tienes permisos para esta acción'
+                });
         }
 
         next();
@@ -76,9 +61,10 @@ async function requireAdmin(req, res, next)
     {
         console.error('Error en requireAdmin:', error);
 
-        return res.status(500).json({
-            mensaje: 'Error interno del servidor'
-        });
+        return res.status(500).json(
+            {
+                mensaje: 'Error interno del servidor'
+            });
     }
 }
 
@@ -117,10 +103,7 @@ router.get('/notificaciones', obtenerNotificacionesAdmin);
 
 router.post('/notificaciones', crearNotificacion);
 
-router.patch(
-    '/notificaciones/:id/estado',
-    cambiarEstadoNotificacion
-);
+router.patch('/notificaciones/:id/estado', cambiarEstadoNotificacion);
 
 router.get('/reportes', obtenerReportesAdmin);
 
