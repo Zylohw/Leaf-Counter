@@ -25,99 +25,85 @@ async function obtenerLecturas(req, res)
         !fechaValida(fecha_fin) ||
         fecha_inicio > fecha_fin)
     {
-        return res.status(400).json({
-            mensaje: 'Debe proporcionar un rango de fechas válido'
-        });
+        return res.status(400).json(
+            {
+                mensaje: 'Debe proporcionar un rango de fechas válido'
+            });
     }
 
     try
     {
-        const resultado = await pool.query(
-            `SELECT
-                c.id,
-                c.sector,
-                c.numero,
+        const resultado = await pool.query(`SELECT c.id, c.sector, c.numero,
+                                                  
+                                                  EXISTS (  SELECT 1
+                                                            FROM reciben rc, reporte r, datos d
+                                                            WHERE r.id = rc.reporte_id
+                                                            AND d.reporte_id = r.id
+                                                            AND rc.casa_id = c.id
+                                                            AND r.estado = TRUE
+                                                            AND d.estado = TRUE
+                                                            AND d.fecha >= $1::date
+                                                            AND d.fecha < ($2::date + INTERVAL '1 day')
+                                                         ) AS lectura_realizada,
 
-                EXISTS (
-                    SELECT 1
-                    FROM reciben rc
-                    INNER JOIN reporte r
-                        ON r.id = rc.reporte_id
-                    INNER JOIN datos d
-                        ON d.reporte_id = r.id
-                    WHERE rc.casa_id = c.id
-                    AND r.estado = TRUE
-                    AND d.estado = TRUE
-                    AND d.fecha >= $1::date
-                    AND d.fecha < ($2::date + INTERVAL '1 day')
-                ) AS lectura_realizada,
+                                                  EXISTS (  SELECT 1
+                                                            FROM reciben rc, reporte r
+                                                            WHERE r.id = rc.reporte_id
+                                                            AND rc.casa_id = c.id
+                                                            AND r.estado = TRUE
+                                                            AND r.fecha >= $1::date
+                                                            AND r.fecha < ($2::date + INTERVAL '1 day')
+                                                            AND r.pdf IS NOT NULL
+                                                            AND TRIM(r.pdf) <> ''
+                                                            AND EXISTS (  SELECT 1
+                                                                          FROM datos d
+                                                                          WHERE d.reporte_id = r.id
+                                                                          AND d.estado = TRUE
+                                                                          AND d.fecha >= $1::date
+                                                                          AND d.fecha < ($2::date + INTERVAL '1 day')
+                                                                       )
+                                                         ) AS reporte_emitido
 
-                EXISTS (
-                    SELECT 1
-                    FROM reciben rc
-                    INNER JOIN reporte r
-                        ON r.id = rc.reporte_id
-                    WHERE rc.casa_id = c.id
-                    AND r.estado = TRUE
-                    AND r.fecha >= $1::date
-                    AND r.fecha < ($2::date + INTERVAL '1 day')
-                    AND r.pdf IS NOT NULL
-                    AND TRIM(r.pdf) <> ''
-                    AND EXISTS (
-                        SELECT 1
-                        FROM datos d
-                        WHERE d.reporte_id = r.id
-                        AND d.estado = TRUE
-                        AND d.fecha >= $1::date
-                        AND d.fecha < ($2::date + INTERVAL '1 day')
-                    )
-                ) AS reporte_emitido
-
-             FROM casa c
-             WHERE c.estado = TRUE
-             ORDER BY c.sector, c.numero`,
-            [fecha_inicio, fecha_fin]
-        );
+                                            FROM casa c
+                                            WHERE c.estado = TRUE
+                                            ORDER BY c.sector, c.numero`,
+                                            [fecha_inicio, fecha_fin] );
 
         const casas = resultado.rows;
 
-        const completadas = casas.filter(
-            casa => casa.lectura_realizada && casa.reporte_emitido
-        ).length;
+        const completadas = casas.filter(casa => casa.lectura_realizada && casa.reporte_emitido).length;
 
-        const pendientes = casas.filter(
-            casa => !casa.lectura_realizada
-        ).length;
+        const pendientes = casas.filter(casa => !casa.lectura_realizada).length;
 
-        const reportesPendientes = casas.filter(
-            casa => casa.lectura_realizada && !casa.reporte_emitido
-        ).length;
+        const reportesPendientes = casas.filter(casa => casa.lectura_realizada && !casa.reporte_emitido).length;
 
-        return res.json({
-            mensaje: 'Lecturas obtenidas correctamente',
-            periodo: {
-                fecha_inicio,
-                fecha_fin
-            },
-            resumen: {
-                total_casas: casas.length,
-                completadas,
-                pendientes,
-                reportes_pendientes: reportesPendientes
-            },
-            casas
-        });
+        return res.json(
+            {
+                mensaje: 'Lecturas obtenidas correctamente',
+                periodo:
+                {
+                    fecha_inicio,
+                    fecha_fin
+                },
+                resumen:
+                {
+                    total_casas: casas.length,
+                    completadas,
+                    pendientes,
+                    reportes_pendientes: reportesPendientes
+                },
+                casas
+            });
     }
     catch (error)
     {
         console.error('Error en obtenerLecturas:', error);
 
-        return res.status(500).json({
-            mensaje: 'Error interno del servidor'
-        });
+        return res.status(500).json(
+            {
+                mensaje: 'Error interno del servidor'
+            });
     }
 }
 
-module.exports = {
-    obtenerLecturas
-};
+module.exports = { obtenerLecturas };
