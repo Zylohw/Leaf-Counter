@@ -22,13 +22,13 @@ async function requireCommon(req, res, next)
     try
     {
         const resultado = await pool.query( `SELECT u.id
-                                             FROM usuarios u, rol r
-                                             WHERE r.id = u.rol_id 
-                                             AND u.id = $1
+                                             FROM usuarios u
+                                             INNER JOIN rol r ON r.id = u.rol_id
+                                             WHERE u.id = $1
                                              AND u.rol_id = 1
                                              AND u.estado = TRUE
                                              AND r.estado = TRUE`,
-                                            [req.usuario.id] );
+                                             [req.usuario.id] );
 
         if (resultado.rows.length === 0)
         {

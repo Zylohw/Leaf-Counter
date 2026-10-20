@@ -19,7 +19,7 @@ function fechaValida(fecha)
 async function programarLectura(req, res)
 {
     const { reporte_id, fecha_lectura, indicaciones } = req.body;
-
+ 
     if (!Number.isSafeInteger(reporte_id) || reporte_id <= 0)
     {
         return res.status(400).json(
@@ -27,7 +27,7 @@ async function programarLectura(req, res)
                 mensaje: 'ID de reporte inválido'
             });
     }
-
+ 
     if (!fechaValida(fecha_lectura))
     {
         return res.status(400).json(
@@ -35,7 +35,7 @@ async function programarLectura(req, res)
                 mensaje: 'Fecha de lectura inválida'
             });
     }
-
+ 
     if (indicaciones !== undefined &&
         typeof indicaciones !== 'string')
     {
@@ -44,7 +44,7 @@ async function programarLectura(req, res)
                 mensaje: 'Las indicaciones no son válidas'
             });
     }
-
+ 
     try
     {
         const reporte = await pool.query(`SELECT r.id, c.sector, c.numero,
@@ -59,7 +59,7 @@ async function programarLectura(req, res)
                                           AND u.rol_id = 2
                                           AND u.estado = TRUE`,
                                           [reporte_id] );
-
+ 
         if (reporte.rows.length === 0)
         {
             return res.status(404).json(
@@ -67,19 +67,20 @@ async function programarLectura(req, res)
                     mensaje: 'Reporte no encontrado o no disponible'
                 });
         }
-
+ 
         const datos = reporte.rows[0];
-
+ 
         const descripcion = `Lectura programada para ${fecha_lectura}. ` +
                             `Sector: ${datos.sector}. ` +
                             `Vivienda: ${datos.numero}. ` +
                             `Indicaciones: ${indicaciones?.trim() || 'Sin indicaciones adicionales'}`;
-
-        const resultado = await pool.query(`INSERT INTO notificaciones (descripcion, reporte_id)
-                                            VALUES ($1, $2)
+ 
+        // ÚNICO CAMBIO: la notificación se guarda dirigida a mantenimiento (rol 2)
+        const resultado = await pool.query(`INSERT INTO notificaciones (descripcion, reporte_id, rol_destinatario)
+                                            VALUES ($1, $2, 2)
                                             RETURNING id, descripcion, fecha, estado, reporte_id`,
                                             [descripcion, reporte_id] );
-
+ 
         return res.status(201).json(
             {
                 mensaje: 'Lectura programada correctamente',
@@ -90,7 +91,7 @@ async function programarLectura(req, res)
     catch (error)
     {
         console.error('Error en programarLectura:', error);
-
+ 
         return res.status(500).json(
             {
                 mensaje: 'Error interno del servidor'
