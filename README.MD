@@ -1,6 +1,6 @@
 # 🍃 Leaf
 
-**Digitaliza la lectura de contadores de agua en condominios — sin papel, sin Excel, sin disputas.**
+**Digitaliza la lectura de contadores de agua en condominios.**
 
 ---
 
