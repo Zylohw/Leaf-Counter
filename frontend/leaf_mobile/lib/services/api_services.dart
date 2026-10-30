@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -102,6 +104,30 @@ class ApiService {
     return procesarRespuesta(response);
   }
 
+  Future<Uint8List> descargarArchivo(String endpoint) async {
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl$endpoint'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    }
+
+    String mensaje = 'No se pudo descargar el archivo';
+
+    try {
+      final data = jsonDecode(response.body);
+      mensaje = data['mensaje']?.toString() ?? mensaje;
+    } catch (_) {}
+
+    throw Exception(mensaje);
+  }
+
   Future<Map<String, dynamic>> post(
     String endpoint,
     Map<String, dynamic> body,
@@ -116,6 +142,37 @@ class ApiService {
           body: jsonEncode(body),
         )
         .timeout(const Duration(seconds: 15));
+
+    return procesarRespuesta(response);
+  }
+
+  Future<Map<String, dynamic>> postConArchivo(
+    String endpoint,
+    Map<String, String> campos,
+    File archivo,
+    String nombreCampo,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl$endpoint'),
+    );
+
+    request.headers['Authorization'] = 'Bearer $token';
+
+    request.fields.addAll(campos);
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        nombreCampo,
+        archivo.path,
+      ),
+    );
+
+    final streamed = await request.send().timeout(
+          const Duration(seconds: 60),
+        );
+
+    final response = await http.Response.fromStream(streamed);
 
     return procesarRespuesta(response);
   }

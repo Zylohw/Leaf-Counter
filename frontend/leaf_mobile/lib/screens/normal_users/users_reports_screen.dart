@@ -1,7 +1,11 @@
+import 'dart:io'; // NUEVO: para guardar el archivo
+
 import 'package:flutter/material.dart';
 import 'package:leaf_mobile/core/app_colors.dart';
 import 'package:leaf_mobile/services/api_services.dart';
 import 'package:month_year_picker/month_year_picker.dart';
+import 'package:open_filex/open_filex.dart'; 
+import 'package:path_provider/path_provider.dart'; 
 
 class UsersReportsScreen extends StatefulWidget {
   const UsersReportsScreen({super.key});
@@ -251,9 +255,9 @@ class _UserReportsScreenState
     }
   }
 
-  void descargarReporte(
+  Future<void> descargarReporte(
     Map<String, dynamic> reporte,
-  ) {
+  ) async {
     final pdf = reporte['pdf']?.toString();
 
     if (pdf == null || pdf.isEmpty) {
@@ -269,14 +273,62 @@ class _UserReportsScreenState
       return;
     }
 
+    final id = reporte['id'];
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          "La descarga del PDF será conectada al servicio binario.",
-        ),
+        content: Text("Descargando reporte..."),
         backgroundColor: AppColors.meidumBlue,
+        duration: Duration(seconds: 1),
       ),
     );
+
+    try {
+      // 1. Pedir el archivo al backend (con el token del usuario)
+      final bytes = await ApiService.instance.descargarArchivo(
+        '/api/usuarios/reportes/$id/descargar',
+      );
+
+      // 2. Guardarlo en una carpeta temporal de la app
+      final carpeta = await getTemporaryDirectory();
+      final archivo = File('${carpeta.path}/reporte-$id.pdf');
+
+      await archivo.writeAsBytes(bytes, flush: true);
+
+      // 3. Abrirlo con el visor de PDF del celular
+      final resultado = await OpenFilex.open(archivo.path);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (resultado.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "No se encontró una aplicación para abrir el PDF.",
+            ),
+            backgroundColor: AppColors.stateYellowOrange,
+          ),
+        );
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+          backgroundColor: AppColors.stateRed,
+        ),
+      );
+    }
   }
 
   @override

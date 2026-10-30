@@ -1,10 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-//import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:leaf_mobile/core/app_colors.dart';
 import 'package:leaf_mobile/services/api_services.dart';
+import 'package:leaf_mobile/services/ocr_service.dart';
 
 class MstaffInputScreen extends StatefulWidget {
   final Map<String, dynamic>? casaInicial;
@@ -25,13 +26,17 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
   final medidaController = TextEditingController();
   final contenidoController = TextEditingController();
 
-  //final ImagePicker imagePicker = ImagePicker();
+  final ImagePicker imagePicker = ImagePicker();
+
+  final ocr = OcrService();
+  bool leyendoContador = false;
+  List<String> candidatos = [];
 
   List<Map<String, dynamic>> casas = [];
 
   int? casaSeleccionada;
 
-  //File? fotoSeleccionada;
+  File? fotoSeleccionada;
 
   bool cargando = true;
   bool guardando = false;
@@ -55,6 +60,7 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
   void dispose() {
     medidaController.dispose();
     contenidoController.dispose();
+    ocr.cerrar();
     super.dispose();
   }
 
@@ -106,66 +112,122 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
     }
   }
 
-  // Future<void> tomarFoto() async {
-  //   final XFile? imagen = await imagePicker.pickImage(
-  //     source: ImageSource.camera,
-  //     imageQuality: 80,
-  //   );
+  Future<void> tomarFoto() async {
+    final XFile? imagen = await imagePicker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80,
+    );
 
-  //   if (imagen == null || !mounted) {
-  //     return;
-  //   }
+    if (imagen == null || !mounted) {
+      return;
+    }
 
-  //   setState(() {
-  //     fotoSeleccionada = File(imagen.path);
-  //   });
-  // }
+    setState(() {
+      fotoSeleccionada = File(imagen.path);
+    });
 
-  // Future<void> seleccionarGaleria() async {
-  //   final XFile? imagen = await imagePicker.pickImage(
-  //     source: ImageSource.gallery,
-  //     imageQuality: 80,
-  //   );
+    await leerContador(imagen.path);
+  }
 
-  //   if (imagen == null || !mounted) {
-  //     return;
-  //   }
+  Future<void> seleccionarGaleria() async {
+    final XFile? imagen = await imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
 
-  //   setState(() {
-  //     fotoSeleccionada = File(imagen.path);
-  //   });
-  // }
+    if (imagen == null || !mounted) {
+      return;
+    }
 
-  // void mostrarOpcionesFoto() {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     builder: (context) {
-  //       return SafeArea(
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             ListTile(
-  //               leading: Icon(Icons.camera_alt),
-  //               title: Text("Tomar fotografía"),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //                 tomarFoto();
-  //               },
-  //             ),
-  //             ListTile(
-  //               leading: Icon(Icons.photo_library),
-  //               title: Text("Seleccionar de galería"),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //                 seleccionarGaleria();
-  //               },
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
+    setState(() {
+      fotoSeleccionada = File(imagen.path);
+    });
+
+    await leerContador(imagen.path);
+  }
+
+  Future<void> leerContador(String rutaImagen) async {
+    setState(() {
+      leyendoContador = true;
+      candidatos = [];
+    });
+
+    try {
+      final numeros = await ocr.leerNumeros(rutaImagen);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        candidatos = numeros;
+      });
+
+      if (numeros.length == 1) {
+        medidaController.text = formatearLectura(numeros.first);
+      } else if (numeros.isEmpty) {
+        mostrarMensaje(
+          "No se detectó la lectura. Ingrésela manualmente.",
+          AppColors.stateYellowOrange,
+        );
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      mostrarMensaje(
+        "No se pudo leer el contador. Ingrese la medición manualmente.",
+        AppColors.stateRed,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          leyendoContador = false;
+        });
+      }
+    }
+  }
+
+  String formatearLectura(String digitos) {
+    final enteros = int.parse(
+      digitos.substring(0, OcrService.digitosEnteros),
+    );
+    final decimales = digitos.substring(OcrService.digitosEnteros);
+
+    return decimales.isEmpty ? '$enteros' : '$enteros.$decimales';
+  }
+
+  void mostrarOpcionesFoto() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt),
+                title: Text("Tomar fotografía"),
+                onTap: () {
+                  Navigator.pop(context);
+                  tomarFoto();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text("Seleccionar de galería"),
+                onTap: () {
+                  Navigator.pop(context);
+                  seleccionarGaleria();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void mostrarMensaje(
     String mensaje,
@@ -193,14 +255,14 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
       return;
     }
 
-    // if (fotoSeleccionada == null) {
-    //   mostrarMensaje(
-    //     "Debe agregar una fotografía del contador.",
-    //     AppColors.stateRed,
-    //   );
+    if (fotoSeleccionada == null) {
+      mostrarMensaje(
+        "Debe agregar una fotografía del contador.",
+        AppColors.stateRed,
+      );
 
-    //   return;
-    // }
+      return;
+    }
 
     final medida = double.tryParse(
       medidaController.text.trim().replaceAll(',', '.'),
@@ -220,13 +282,15 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
     });
 
     try {
-      final respuesta = await ApiService.instance.post(
+      final respuesta = await ApiService.instance.postConArchivo(
         '/api/mantenimiento/lecturas',
         {
-          'casa_id': casaSeleccionada,
-          'medida_tomada': medida,
+          'casa_id': casaSeleccionada.toString(),
+          'medida_tomada': medida.toString(),
           'contenido': contenidoController.text.trim(),
         },
+        fotoSeleccionada!,
+        'foto',
       );
 
       if (!mounted) {
@@ -242,9 +306,10 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
       medidaController.clear();
       contenidoController.clear();
 
-      // setState(() {
-      //   fotoSeleccionada = null;
-      // });
+      setState(() {
+        fotoSeleccionada = null;
+        candidatos = [];
+      });
 
       if (widget.casaInicial != null) {
         Navigator.pop(context, true);
@@ -301,7 +366,29 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
               : ListView(
                   padding: EdgeInsets.all(20),
                   children: [
-                   // bloqueFotografia(),
+                    bloqueFotografia(),
+
+                    if (leyendoContador)
+                      Padding(
+                        padding: EdgeInsets.only(top: 15),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.darkGreen,
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text("Leyendo contador..."),
+                          ],
+                        ),
+                      ),
+
+                    if (candidatos.length > 1)
+                      bloqueCandidatos(),
 
                     SizedBox(height: 30),
 
@@ -341,75 +428,107 @@ class _MstaffInputScreenState extends State<MstaffInputScreen> {
     );
   }
 
-  // Widget bloqueFotografia() {
-  //   return Container(
-  //     height: 220,
-  //     decoration: BoxDecoration(
-  //       color: AppColors.alternativeBackground,
-  //       borderRadius: BorderRadius.circular(25),
-  //       border: Border.all(
-  //         color: AppColors.secondaryText,
-  //       ),
-  //     ),
-  //     child: fotoSeleccionada == null
-  //         ? InkWell(
-  //             onTap: mostrarOpcionesFoto,
-  //             borderRadius: BorderRadius.circular(25),
-  //             child: Column(
-  //               mainAxisAlignment: MainAxisAlignment.center,
-  //               children: [
-  //                 Icon(
-  //                   Icons.add_a_photo_outlined,
-  //                   size: 55,
-  //                   color: AppColors.darkGreen,
-  //                 ),
-  //                 SizedBox(height: 15),
-  //                 Text(
-  //                   "Agregar fotografía",
-  //                   style: TextStyle(
-  //                     fontSize: 20,
-  //                     color: AppColors.primaryText,
-  //                   ),
-  //                 ),
-  //                 SizedBox(height: 8),
-  //                 Text(
-  //                   "Tome una foto del contador",
-  //                   style: TextStyle(
-  //                     fontSize: 14,
-  //                     color: AppColors.secondaryText,
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           )
-  //         : Stack(
-  //             fit: StackFit.expand,
-  //             children: [
-  //               ClipRRect(
-  //                 borderRadius: BorderRadius.circular(25),
-  //                 child: Image.file(
-  //                   fotoSeleccionada!,
-  //                   fit: BoxFit.cover,
-  //                 ),
-  //               ),
-  //               Positioned(
-  //                 right: 10,
-  //                 top: 10,
-  //                 child: CircleAvatar(
-  //                   backgroundColor: Colors.black54,
-  //                   child: IconButton(
-  //                     onPressed: mostrarOpcionesFoto,
-  //                     icon: Icon(
-  //                       Icons.edit,
-  //                       color: Colors.white,
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //   );
-  // }
+  Widget bloqueCandidatos() {
+    return Padding(
+      padding: EdgeInsets.only(top: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Se detectaron varios números. Toque la lectura correcta:",
+            style: TextStyle(
+              fontSize: 15,
+              color: AppColors.secondaryText,
+            ),
+          ),
+          SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: candidatos.map((candidato) {
+              return ActionChip(
+                label: Text(candidato),
+                onPressed: () {
+                  medidaController.text =
+                      formatearLectura(candidato);
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget bloqueFotografia() {
+    return Container(
+      height: 220,
+      decoration: BoxDecoration(
+        color: AppColors.alternativeBackground,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(
+          color: AppColors.secondaryText,
+        ),
+      ),
+      child: fotoSeleccionada == null
+          ? InkWell(
+              onTap: mostrarOpcionesFoto,
+              borderRadius: BorderRadius.circular(25),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_a_photo_outlined,
+                    size: 55,
+                    color: AppColors.darkGreen,
+                  ),
+                  SizedBox(height: 15),
+                  Text(
+                    "Agregar fotografía",
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Acerque la cámara a los números del contador",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: Image.file(
+                    fotoSeleccionada!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black54,
+                    child: IconButton(
+                      onPressed: mostrarOpcionesFoto,
+                      icon: Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
 
   Widget bloqueFormulario() {
     return Container(
