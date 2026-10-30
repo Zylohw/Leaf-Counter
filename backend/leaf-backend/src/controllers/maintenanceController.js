@@ -1,4 +1,48 @@
 const pool = require('../config/db');
+const multer = require('multer');
+
+const fs = require('fs/promises');
+const path = require('path');
+
+const FOTOS_DIR = path.join(__dirname, '../../private/fotos');
+
+const EXTENSIONES_PERMITIDAS = ['.jpg', '.jpeg', '.png'];
+
+const subirFoto = multer(
+    {
+        storage: multer.memoryStorage(),
+        limits:
+        {
+            fileSize: 8 * 1024 * 1024
+        },
+        fileFilter: (req, file, cb) =>
+        {
+            const extension = path.extname(file.originalname || '').toLowerCase();
+
+            if (!EXTENSIONES_PERMITIDAS.includes(extension))
+            {
+                return cb(new Error('FORMATO_INVALIDO'));
+            }
+
+            cb(null, true);
+        }
+    }).single('foto');
+
+function procesarFoto(req, res)
+{
+    return new Promise((resolve, reject) =>
+        {
+            subirFoto(req, res, error =>
+                {
+                    if (error)
+                    {
+                        return reject(error);
+                    }
+
+                    resolve();
+                });
+        });
+}
 
 async function obtenerCasasMantenimiento(req, res)
 {
@@ -28,7 +72,39 @@ async function obtenerCasasMantenimiento(req, res)
 
 async function registrarLectura(req, res)
 {
-    const { casa_id, medida_tomada, contenido } = req.body;
+    try
+    {
+        await procesarFoto(req, res);
+    }
+    catch (error)
+    {
+        if (error.message === 'FORMATO_INVALIDO')
+        {
+            return res.status(400).json(
+                {
+                    mensaje: 'La fotografía debe ser JPG o PNG'
+                });
+        }
+
+        if (error.code === 'LIMIT_FILE_SIZE')
+        {
+            return res.status(400).json(
+                {
+                    mensaje: 'La fotografía no puede pesar más de 8 MB'
+                });
+        }
+
+        console.error('Error al recibir la fotografía:', error);
+
+        return res.status(400).json(
+            {
+                mensaje: 'No se pudo procesar la fotografía'
+            });
+    }
+
+    const casa_id = Number(req.body.casa_id);
+    const medida_tomada = Number(req.body.medida_tomada);
+    const contenido = req.body.contenido;
 
     if (!Number.isSafeInteger(casa_id) || casa_id <= 0)
     {
@@ -38,8 +114,7 @@ async function registrarLectura(req, res)
             });
     }
 
-    if (typeof medida_tomada !== 'number' || !Number.isFinite(medida_tomada) || medida_tomada < 0 ||
-        medida_tomada > 99999999.99 || !Number.isInteger(Math.round(medida_tomada * 100) * 100 / 100))
+    if (!Number.isFinite(medida_tomada) || medida_tomada < 0 || medida_tomada > 99999999.99)
     {
         return res.status(400).json(
             {
@@ -56,7 +131,17 @@ async function registrarLectura(req, res)
             });
     }
 
+    if (!req.file)
+    {
+        return res.status(400).json(
+            {
+                mensaje: 'Debe adjuntar la fotografía del contador'
+            });
+    }
+
     const cliente = await pool.connect();
+
+    let rutaFotoGuardada = null;
 
     try
     {
@@ -95,22 +180,53 @@ async function registrarLectura(req, res)
 
         const lectura = await cliente.query(`INSERT INTO datos (medida_tomada, contenido, reporte_id)
                                              VALUES ($1, $2, $3)
-                                             RETURNING id, medida_tomada, contenido, foto, fecha, reporte_id`,
+                                             RETURNING id`,
                                              [medida_tomada, contenido?.trim() || null, reporteCreado.id] );
 
+        const lecturaId = lectura.rows[0].id;
+
+        const extension = path.extname(req.file.originalname).toLowerCase() === '.png' ? '.png' : '.jpg';
+
+        const nombreFoto = `lectura-${lecturaId}${extension}`;
+
+        await fs.mkdir(FOTOS_DIR,
+            {
+                recursive: true
+            });
+
+        rutaFotoGuardada = path.join(FOTOS_DIR, nombreFoto);
+
+        await fs.writeFile(rutaFotoGuardada, req.file.buffer);
+
+        const lecturaFinal = await cliente.query(`UPDATE datos
+                                                  SET foto = $1
+                                                  WHERE id = $2
+                                                  RETURNING id, medida_tomada, contenido, foto, fecha, reporte_id`,
+                                                  [nombreFoto, lecturaId] );
+
         await cliente.query('COMMIT');
+
+        rutaFotoGuardada = null;
 
         return res.status(201).json(
             {
                 mensaje: 'Lectura registrada correctamente',
                 casa,
                 reporte: reporteCreado,
-                lectura: lectura.rows[0]
+                lectura: lecturaFinal.rows[0]
             });
     }
     catch (error)
     {
         await cliente.query('ROLLBACK');
+
+        if (rutaFotoGuardada)
+        {
+            await fs.rm(rutaFotoGuardada,
+                {
+                    force: true
+                }).catch(() => {});
+        }
 
         console.error('Error en registrarLectura:', error);
 
@@ -138,7 +254,7 @@ async function obtenerReportesMantenimiento(req, res)
                                                      AND d.estado = TRUE
                                                      ORDER BY d.fecha DESC, d.id DESC
                                                      LIMIT 1 ) AS lectura_id,
-                                                     
+
                                                    ( SELECT d.medida_tomada
                                                      FROM datos d
                                                      WHERE d.reporte_id = r.id

@@ -6,6 +6,26 @@ const path = require('path');
 const crypto = require('crypto');
 
 const REPORTES_DIR = path.join(__dirname, '../../private/reportes');
+const FOTOS_DIR = path.join(__dirname, '../../private/fotos');
+
+async function leerFoto(nombreFoto)
+{
+    if (!nombreFoto)
+    {
+        return null;
+    }
+
+    try
+    {
+        return await fs.readFile(path.join(FOTOS_DIR, path.basename(nombreFoto)));
+    }
+    catch (error)
+    {
+        console.error('No se encontró la fotografía de la lectura:', nombreFoto);
+
+        return null;
+    }
+}
 
 async function emitirReporte(req, res)
 {
@@ -25,7 +45,7 @@ async function emitirReporte(req, res)
     {
         const resultado = await pool.query(`SELECT r.id, r.titulo, r.descripcion, r.fecha, r.pdf,
                                                   c.sector, c.numero,
-                                                  d.medida_tomada, d.contenido, d.fecha AS fecha_lectura
+                                                  d.medida_tomada, d.contenido, d.foto, d.fecha AS fecha_lectura
                                             FROM reporte r, reciben rc, casa c, datos d
                                             WHERE rc.reporte_id = r.id
                                             AND c.id = rc.casa_id
@@ -59,6 +79,8 @@ async function emitirReporte(req, res)
                     mensaje: 'El reporte ya fue emitido'
                 });
         }
+
+        const foto = await leerFoto(reporte.foto);
 
         const documento = new PDFDocument(
             {
@@ -131,6 +153,39 @@ async function emitirReporte(req, res)
         documento.moveDown();
 
         documento.text(reporte.contenido || 'Sin observaciones adicionales');
+
+        if (foto)
+        {
+            const altoFoto = 280;
+
+            const anchoDisponible = documento.page.width - documento.page.margins.left - documento.page.margins.right;
+
+            documento.moveDown(2);
+
+            if (documento.y + altoFoto + 40 > documento.page.height - documento.page.margins.bottom)
+            {
+                documento.addPage();
+            }
+
+            documento.fontSize(13).text('Fotografía del contador:');
+
+            documento.moveDown();
+
+            try
+            {
+                documento.image(foto,
+                    {
+                        fit: [anchoDisponible, altoFoto],
+                        align: 'center'
+                    });
+            }
+            catch (error)
+            {
+                console.error('No se pudo insertar la fotografía en el PDF:', error);
+
+                documento.text('La fotografía no pudo incluirse en el reporte.');
+            }
+        }
 
         documento.moveDown(3);
 
