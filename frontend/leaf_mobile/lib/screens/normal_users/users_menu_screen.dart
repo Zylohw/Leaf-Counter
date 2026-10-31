@@ -16,7 +16,8 @@ class UsersMenuScreen extends StatefulWidget {
       _UserMenuScreenState();
 }
 
-class _UserMenuScreenState extends State<UsersMenuScreen> {
+class _UserMenuScreenState extends State<UsersMenuScreen> 
+{
   bool cargando = true;
   bool cargandoHistorial = false;
 
@@ -28,12 +29,14 @@ class _UserMenuScreenState extends State<UsersMenuScreen> {
   int? casaSeleccionada;
 
   @override
-  void initState() {
+  void initState() 
+  {
     super.initState();
     obtenerCasas();
   }
 
-  Future<void> obtenerCasas() async {
+  Future<void> obtenerCasas() async 
+  {
     setState(() {
       cargando = true;
       mensajeError = null;

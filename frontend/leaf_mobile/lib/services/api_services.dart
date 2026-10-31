@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-class ApiService {
+class ApiService 
+{
   ApiService._();
 
   static final ApiService instance = ApiService._();
 
-  static const String baseUrl = String.fromEnvironment(
+  static const String baseUrl = String.fromEnvironment
+  (
     'API_BASE_URL',
     defaultValue: 'http://localhost:3000',
   );
@@ -24,7 +25,9 @@ class ApiService {
   Future<void> iniciarSesion(
     String correo,
     String contrasena,
-  ) async {
+  ) 
+  async 
+  {
     final response = await http
         .post(
           Uri.parse('$baseUrl/api/auth/login'),
@@ -215,7 +218,8 @@ class ApiService {
 
   Map<String, dynamic> procesarRespuesta(
     http.Response response,
-  ) {
+  ) 
+  {
     final Map<String, dynamic> data = jsonDecode(response.body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -226,4 +230,4 @@ class ApiService {
       data['mensaje'] ?? 'Error al realizar la solicitud',
     );
   }
-}
+} 

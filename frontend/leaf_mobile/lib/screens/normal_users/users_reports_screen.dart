@@ -29,18 +29,22 @@ class _UserReportsScreenState
   DateTime? mesSeleccionado;
 
   @override
-  void initState() {
+  void initState() 
+  {
     super.initState();
     obtenerCasas();
   }
 
-  Future<void> obtenerCasas() async {
-    setState(() {
+  Future<void> obtenerCasas() async 
+  {
+    setState(() 
+    {
       cargando = true;
       mensajeError = null;
     });
 
-    try {
+    try 
+    {
       final respuesta = await ApiService.instance.get(
         '/api/usuarios/mis-casas',
       );
@@ -49,7 +53,8 @@ class _UserReportsScreenState
           ? respuesta
           : respuesta['casas'];
 
-      if (!mounted) {
+      if (!mounted) 
+      {
         return;
       }
 
@@ -61,7 +66,8 @@ class _UserReportsScreenState
               .toList()
           : [];
 
-      if (casas.isNotEmpty) {
+      if (casas.isNotEmpty) 
+      {
         casaSeleccionada = int.tryParse(
           casas.first['id'].toString(),
         );
@@ -284,18 +290,15 @@ class _UserReportsScreenState
     );
 
     try {
-      // 1. Pedir el archivo al backend (con el token del usuario)
       final bytes = await ApiService.instance.descargarArchivo(
         '/api/usuarios/reportes/$id/descargar',
       );
 
-      // 2. Guardarlo en una carpeta temporal de la app
       final carpeta = await getTemporaryDirectory();
       final archivo = File('${carpeta.path}/reporte-$id.pdf');
 
       await archivo.writeAsBytes(bytes, flush: true);
 
-      // 3. Abrirlo con el visor de PDF del celular
       final resultado = await OpenFilex.open(archivo.path);
 
       if (!mounted) {
