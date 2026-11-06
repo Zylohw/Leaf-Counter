@@ -1,4 +1,3 @@
-BEGIN;
 
 CREATE TABLE rol 
 (
@@ -86,3 +85,4 @@ CREATE INDEX idx_tiene_casa_id ON tiene(casa_id);
 CREATE INDEX idx_reciben_reporte_id ON reciben(reporte_id);
 
 COMMIT;
+
