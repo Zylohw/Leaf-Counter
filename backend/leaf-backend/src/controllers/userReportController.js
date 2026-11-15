@@ -20,9 +20,9 @@ async function obtenerReportesUsuario(req, res)
     try
     {
         const vivienda = await pool.query( `SELECT c.id, c.sector, c.numero
-                                            FROM casa c
-                                            INNER JOIN tiene t ON t.casa_id = c.id
-                                            WHERE c.id = $1
+                                            FROM casa c, tiene t
+                                            WHERE t.casa_id = c.id
+                                            AND c.id = $1
                                             AND t.usuario_id = $2
                                             AND t.habita = TRUE
                                             AND c.estado = TRUE`,
@@ -40,14 +40,15 @@ async function obtenerReportesUsuario(req, res)
                                                     rc.recibido,
                                                     d.medida_tomada, d.fecha AS fecha_lectura, d.contenido
                                              FROM reporte r
-                                             INNER JOIN reciben rc ON rc.reporte_id = r.id
                                              LEFT JOIN LATERAL ( SELECT medida_tomada, fecha, contenido
                                                                  FROM datos
                                                                  WHERE reporte_id = r.id
                                                                  AND estado = TRUE
                                                                  ORDER BY fecha DESC, id DESC
-                                                                 LIMIT 1 ) d ON TRUE
-                                             WHERE rc.casa_id = $1
+                                                                 LIMIT 1 ) d ON TRUE,
+                                                  reciben rc
+                                             WHERE rc.reporte_id = r.id
+                                             AND rc.casa_id = $1
                                              AND r.estado = TRUE
                                              AND r.pdf IS NOT NULL
                                              AND TRIM(r.pdf) <> ''
@@ -87,11 +88,11 @@ async function descargarReporteUsuario(req, res)
     try
     {
         const resultado = await pool.query(`SELECT DISTINCT r.id, r.titulo, r.pdf
-                                            FROM reporte r
-                                            INNER JOIN reciben rc ON rc.reporte_id = r.id
-                                            INNER JOIN casa c ON c.id = rc.casa_id
-                                            INNER JOIN tiene t ON t.casa_id = c.id
-                                            WHERE r.id = $1
+                                            FROM reporte r, reciben rc, casa c, tiene t
+                                            WHERE rc.reporte_id = r.id
+                                            AND c.id = rc.casa_id
+                                            AND t.casa_id = c.id
+                                            AND r.id = $1
                                             AND t.usuario_id = $2
                                             AND t.habita = TRUE
                                             AND c.estado = TRUE
