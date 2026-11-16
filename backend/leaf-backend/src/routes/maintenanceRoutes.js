@@ -16,7 +16,7 @@ async function requireMaintenance(req, res, next)
 {
     try
     {
-        const resultado = await pool.query( `SELECT u.id
+        const resultado = await req.db.query( `SELECT u.id
                                              FROM usuarios u, rol r
                                              WHERE r.id = u.rol_id
                                              AND u.id = $1

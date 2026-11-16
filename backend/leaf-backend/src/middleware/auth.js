@@ -1,4 +1,5 @@
 const { verificarToken } = require('../utils/jwt');
+const { poolPorRol } = require('../config/db');
 
 function requireAuth(req, res, next)
 {
@@ -14,7 +15,8 @@ function requireAuth(req, res, next)
     try
     {
         const datos = verificarToken(token);
-        req.usuario = datos; // { id, correo, rol }
+        req.usuario = datos;
+        req.db = poolPorRol(datos.rol);
         next();
     }
     catch (error)
